@@ -1,0 +1,286 @@
+{
+	"name": "claude-commit-ai",
+	"displayName": "Claude Commit AI",
+	"description": "AI-powered git commit message generator using Claude AI",
+	"version": "1.0.23",
+	"publisher": "AnhNT",
+	"icon": "icon.png",
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"categories": [
+		"SCM Providers",
+		"Other"
+	],
+	"keywords": [
+		"git",
+		"commit",
+		"ai",
+		"claude",
+		"conventional-commits",
+		"anthropic"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "claude-commit.generate",
+				"title": "Generate Commit Message",
+				"category": "Claude Commit",
+				"icon": "$(sparkle)"
+			},
+			{
+				"command": "claude-commit.generateWithCustomPrompt",
+				"title": "Generate Commit Message with Custom Prompt",
+				"category": "Claude Commit"
+			}
+		],
+		"menus": {
+			"scm/title": [
+				{
+					"command": "claude-commit.generate",
+					"group": "navigation",
+					"when": "scmProvider == git"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Claude Commit",
+			"properties": {
+				"commitGenAI.cliPath": {
+					"type": "string",
+					"default": "",
+					"description": "Path to Claude Code CLI executable (leave empty for auto-detection)",
+					"order": 1
+				},
+				"commitGenAI.apiKey": {
+					"type": "string",
+					"default": "",
+					"order": 2,
+					"markdownDescription": "Legacy Anthropic API key setting. Prefer `commitGenAI.anthropicApiKey` for new setups."
+				},
+				"commitGenAI.anthropicApiKey": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Anthropic API key for Claude AI (`ANTHROPIC_API_KEY`). Optional if using Claude Code CLI.",
+					"order": 3
+				},
+				"commitGenAI.baseUrl": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Base URL for the Claude API endpoint (`ANTHROPIC_BASE_URL`). Leave empty to use the official Anthropic API endpoint.",
+					"order": 4
+				},
+				"commitGenAI.apiProvider": {
+					"type": "string",
+					"enum": [
+						"anthropic",
+						"openai-responses"
+					],
+					"default": "anthropic",
+					"enumDescriptions": [
+						"Anthropic Claude Messages API",
+						"OpenAI-compatible Responses API"
+					],
+					"markdownDescription": "API provider to use when `commitGenAI.preferredMethod` uses `api`.",
+					"order": 5
+				},
+				"commitGenAI.openAiApiKey": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "OpenAI-compatible API key (`OPENAI_API_KEY`). Used when `commitGenAI.apiProvider` is `openai-responses`.",
+					"order": 6
+				},
+				"commitGenAI.openAiBaseUrl": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "OpenAI-compatible API base URL (`OPENAI_BASE_URL`). Leave empty to use `https://api.openai.com/v1`.",
+					"order": 7
+				},
+				"commitGenAI.openAiModel": {
+					"type": "string",
+					"default": "gpt-4.1-mini",
+					"markdownDescription": "Model name for the OpenAI-compatible Responses API.",
+					"order": 8
+				},
+				"commitGenAI.preferredMethod": {
+					"type": "string",
+					"enum": [
+						"auto",
+						"cli",
+						"api"
+					],
+					"default": "auto",
+					"description": "Preferred method for generating commits: auto (try CLI first, then API), cli (Claude Code CLI only), or api (configured API provider only)",
+					"order": 9
+				},
+				"commitGenAI.model": {
+					"type": "string",
+					"enum": [
+						"haiku",
+						"sonnet",
+						"opus",
+						"custom"
+					],
+					"default": "haiku",
+					"enumDescriptions": [
+						"Claude Haiku - Fast and cost-effective",
+						"Claude Sonnet - Balanced performance",
+						"Claude Opus - Most capable",
+						"Use the model name from commitGenAI.customModelName"
+					],
+					"description": "Claude model to use for commit generation",
+					"order": 10
+				},
+				"commitGenAI.customModelName": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Custom Claude model name to use when `commitGenAI.model` is set to `custom`.",
+					"order": 11
+				},
+				"commitGenAI.language": {
+					"type": "string",
+					"enum": [
+						"en",
+						"ko",
+						"ua",
+						"zh"
+					],
+					"default": "en",
+					"enumDescriptions": [
+						"English",
+						"Korean",
+						"Ukrainian",
+						"Chinese"
+					],
+					"description": "Language for commit messages",
+					"order": 12
+				},
+				"commitGenAI.multiLineCommit": {
+					"type": "boolean",
+					"default": false,
+					"description": "Generate detailed multi-line commits with body and footer (conventional commits extended format)",
+					"order": 13
+				},
+				"commitGenAI.diffSource": {
+					"type": "string",
+					"enum": [
+						"staged",
+						"all",
+						"auto"
+					],
+					"default": "auto",
+					"enumDescriptions": [
+						"Only use staged changes",
+						"Use all changes (staged + unstaged)",
+						"Use staged changes if available, otherwise use all changes"
+					],
+					"description": "Which changes to use for generating commit messages",
+					"order": 14
+				},
+				"commitGenAI.claudeCodeManaged": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Claude Code managed mode: Let Claude Code's haiku model generate commit messages with minimal intervention (only language hint provided). **Only works when preferredMethod is 'cli'**",
+					"order": 15
+				},
+				"commitGenAI.keepCoAuthoredBy": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Keep Co-Authored-By signature in commit message. **Only works in Claude Code managed mode**",
+					"order": 16
+				},
+				"commitGenAI.messageAutoCloseSeconds": {
+					"type": "number",
+					"default": 5,
+					"minimum": 0,
+					"maximum": 60,
+					"description": "Auto-close timeout for the success message in seconds. Set to 0 to disable auto-close.",
+					"order": 17
+				},
+				"commitGenAI.privacyMode": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Privacy mode: Restrict temporary prompt file permissions to owner-only (0600). When disabled, uses default permissions (0644). **Note: This option only takes effect on Linux/macOS. On Windows, file permissions are managed by the OS and this setting is ignored.**",
+					"order": 18
+				},
+				"commitGenAI.commitStyle": {
+					"type": "string",
+					"enum": [
+						"conventional",
+						"prefix",
+						"default",
+						"custom"
+					],
+					"default": "conventional",
+					"enumDescriptions": [
+						"Conventional Commits with scope - feat(auth): added user login",
+						"Type prefix only - feat: added user login",
+						"Simple description - added user login",
+						"Custom template using {diff} and {stats} variables"
+					],
+					"markdownDescription": "Commit message style format. Choose 'custom' to use your own prompt template.",
+					"order": 19
+				},
+				"commitGenAI.customPromptTemplate": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Custom prompt template. Use `{diff}` for diff content and `{stats}` for change statistics. Only used when commitStyle is set to 'custom'. Example: `Generate a commit message for:\n\n{stats}\n\n{diff}`",
+					"editPresentation": "multilineText",
+					"order": 20
+				},
+				"commitGenAI.commitTense": {
+					"type": "string",
+					"enum": [
+						"imperative",
+						"past"
+					],
+					"default": "imperative",
+					"enumDescriptions": [
+						"Imperative mood (Git best practice) - 'add feature', 'fix bug'",
+						"Past tense - 'added feature', 'fixed bug'"
+					],
+					"markdownDescription": "Tense/mood for commit subjects. **Imperative** (default) follows the official Git convention - the subject reads as a command (e.g. 'add login button'). **Past tense** describes what was done (e.g. 'added login button').",
+					"order": 21
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"package": "webpack --mode production --devtool false",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"lint": "biome check src",
+		"lint:fix": "biome check --write src",
+		"format": "biome format --write src"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.11",
+		"@types/node": "^18.0.0",
+		"@types/vscode": "^1.75.0",
+		"@types/webpack": "^5.28.5",
+		"ts-loader": "^9.5.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.3.0",
+		"webpack": "^5.88.0",
+		"webpack-cli": "^5.1.4"
+	},
+	"optionalDependencies": {
+		"@anthropic-ai/sdk": "^0.68.0",
+		"openai": "^6.45.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/theanhnb97/claude-commit.git"
+	},
+	"author": "AnhNT",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/theanhnb97/claude-commit/issues"
+	},
+	"homepage": "https://github.com/theanhnb97/claude-commit#readme"
+}
